@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 
 const STORAGE_KEY = "proxyPersona";
 const emptyPersona = Array.from({ length: 5 }, () => ({ question: "", answer: "" }));
-const ENABLE_SAMPLE_PERSONA = true; // set to false before deployment to disable sample autofill
+const ENABLE_SAMPLE_PERSONA = false; // set to false before deployment to disable sample autofill
 const samplePersona = [
   {
     question: "What kind of proxy are you?",
@@ -31,6 +31,17 @@ export default function Home() {
   const [persona, setPersona] = useState(emptyPersona);
   const router = useRouter();
 
+  const isSamplePersona = (arr) =>
+    Array.isArray(arr) &&
+    arr.length === samplePersona.length &&
+    arr.every((entry, idx) => {
+      const sample = samplePersona[idx];
+      return (
+        (entry?.question || "").trim() === sample.question.trim() &&
+        (entry?.answer || "").trim() === sample.answer.trim()
+      );
+    });
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -40,6 +51,11 @@ export default function Home() {
         const hasContent =
           Array.isArray(parsed) &&
           parsed.some((entry) => (entry?.question || "").trim() || (entry?.answer || "").trim());
+        if (!ENABLE_SAMPLE_PERSONA && isSamplePersona(parsed)) {
+          window.localStorage.removeItem(STORAGE_KEY);
+          setPersona(emptyPersona);
+          return;
+        }
         if (Array.isArray(parsed) && parsed.length === 5 && hasContent) {
           setPersona(
             parsed.map((entry) => ({
