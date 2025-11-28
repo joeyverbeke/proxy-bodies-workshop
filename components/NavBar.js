@@ -14,7 +14,11 @@ export default function NavBar() {
   return (
     <nav className="top-nav">
       <div className="top-nav-inner">
-        <div className="brand">Proxy Bodies<br/>k0j0</div>
+        <div className="brand">
+          Proxy Bodies
+          <br />
+          <span className="brand-light">[k0j0]</span>
+        </div>
         <div className="nav-links">
           {links.map((link) => {
             const active = router.pathname === link.href;
