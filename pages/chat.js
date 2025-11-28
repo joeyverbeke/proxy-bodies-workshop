@@ -6,7 +6,7 @@ const THREADS_KEY = "proxyThreads";
 
 const makeThread = (index) => ({
   id: `${Date.now()}-${index}`,
-  title: `Chat ${index}`,
+  title: `Chat ${index} / 채팅 ${index}`,
   createdAt: Date.now(),
   messages: [],
 });
@@ -123,13 +123,13 @@ export default function Chat() {
       }
 
       const data = await response.json();
-      const reply = data?.reply || "The proxy responded with an empty reply.";
+      const reply = data?.reply || "The proxy responded with an empty reply. / 프록시가 빈 답변을 보냈습니다.";
       appendMessage(activeThread.id, { role: "assistant", content: reply });
     } catch (err) {
       console.error("Chat request failed", err);
       appendMessage(activeThread.id, {
         role: "assistant",
-        content: "The proxy could not respond due to a server error.",
+        content: "The proxy could not respond due to a server error. / 서버 오류로 응답하지 못했습니다.",
       });
     } finally {
       setLoadingThreadId(null);
@@ -146,16 +146,16 @@ export default function Chat() {
 
   const snippetForThread = (thread) => {
     const firstUser = thread.messages.find((m) => m.role === "user");
-    if (!firstUser) return "No messages yet";
+    if (!firstUser) return "No messages yet / 아직 메시지가 없습니다";
     const words = firstUser.content.trim().split(/\s+/).slice(0, 6).join(" ");
-    return words || "No messages yet";
+    return words || "No messages yet / 아직 메시지가 없습니다";
   };
 
   if (!persona) {
     return (
       <div className="container">
         <div className="card">
-          <p className="muted">Loading persona...</p>
+          <p className="muted">Loading persona... / 페르소나 불러오는 중...</p>
         </div>
       </div>
     );
@@ -165,7 +165,7 @@ export default function Chat() {
     <div className="chat-layout">
       <aside className="sidebar">
         <button className="primary-button" onClick={handleNewChat}>
-          New chat
+          New chat / 새 채팅
         </button>
         <div className="thread-list">
           {threads.map((thread) => (
@@ -197,14 +197,14 @@ export default function Chat() {
           )}
         </div>
 
-        <div className="input-bar">
+        <div className="input-bar chat-input-bar">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Send a message to your proxy..."
+            placeholder="Message / 메시지"
           />
           <button className="primary-button" onClick={handleSend}>
-            Send
+            Send / 보내기
           </button>
         </div>
       </main>
