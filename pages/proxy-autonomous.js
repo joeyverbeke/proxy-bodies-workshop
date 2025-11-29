@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { pickRandomScenario, getScenarioById, DEFAULT_SCENARIO_ID } from "../lib/scenarios";
 
 const PERSONA_KEY = "proxyPersona";
 const THREADS_KEY = "proxyAutonomousThreads";
 const MAX_TURNS = 5;
-const INITIAL_PERSONA_MESSAGE =
-  "EN: Hey, I just heard about your pet. I remember when you first brought them home. How are you holding up?\n" +
-  "KO: 방금 너희 반려동물 소식 들었어. 처음 데려왔을 때가 기억나. 지금 마음은 어때?";
-const makeThread = (index) => ({
+const makeThread = (index, scenario) => ({
   id: `${Date.now()}-${index}`,
-  title: `Chat ${index} / 채팅 ${index}`,
+  title: `${scenario.title}`,
+  scenarioId: scenario.id,
   createdAt: Date.now(),
-  messages: [{ role: "persona", content: INITIAL_PERSONA_MESSAGE }],
+  messages: [{ role: "persona", content: scenario.initialMessage }],
 });
 
 const isPersonaValid = (value) =>
@@ -56,6 +55,7 @@ export default function ProxyAutonomous() {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const normalized = parsed.map((thread) => {
+            const scenario = getScenarioById(thread.scenarioId || DEFAULT_SCENARIO_ID);
             const msgs = Array.isArray(thread.messages) ? thread.messages : [];
             const updated = msgs.map((msg, idx) => {
               if (
@@ -63,11 +63,11 @@ export default function ProxyAutonomous() {
                 msg.role === "persona" &&
                 (typeof msg.content !== "string" || !msg.content.includes("EN:") || !msg.content.includes("KO:"))
               ) {
-                return { ...msg, content: INITIAL_PERSONA_MESSAGE };
+                return { ...msg, content: scenario.initialMessage };
               }
               return msg;
             });
-            return { ...thread, messages: updated };
+            return { ...thread, scenarioId: scenario.id, messages: updated };
           });
           setThreads(normalized);
           setActiveThreadId(normalized[0].id);
@@ -77,7 +77,8 @@ export default function ProxyAutonomous() {
         console.error("Failed to parse autonomous history", err);
       }
     }
-    const first = makeThread(1);
+    const scenario = getScenarioById(DEFAULT_SCENARIO_ID);
+    const first = makeThread(1, scenario);
     setThreads([first]);
     setActiveThreadId(first.id);
   }, [router]);
@@ -93,9 +94,15 @@ export default function ProxyAutonomous() {
     [threads, activeThreadId]
   );
 
+  const activeScenario = useMemo(
+    () => getScenarioById(activeThread?.scenarioId || DEFAULT_SCENARIO_ID),
+    [activeThread]
+  );
+
   const handleNewChat = () => {
     const nextIndex = threads.length + 1;
-    const newThread = makeThread(nextIndex);
+    const scenario = pickRandomScenario();
+    const newThread = makeThread(nextIndex, scenario);
     setThreads((prev) => [newThread, ...prev]);
     setActiveThreadId(newThread.id);
   };
@@ -115,7 +122,7 @@ export default function ProxyAutonomous() {
       for (let i = 0; i < MAX_TURNS; i++) {
         const lastPersonaMessage =
           [...runningMessages].reverse().find((m) => m.role === "persona")?.content ||
-          INITIAL_PERSONA_MESSAGE;
+          activeScenario.initialMessage;
 
         const response = await fetch("/api/proxy-dialogue", {
           method: "POST",
@@ -123,6 +130,7 @@ export default function ProxyAutonomous() {
           body: JSON.stringify({
             mode: "auto",
             persona,
+            scenarioId: activeScenario.id,
             personaMessage: lastPersonaMessage,
             history: runningMessages.filter((m) => m.role === "persona" || m.role === "proxy"),
           }),
@@ -186,7 +194,7 @@ export default function ProxyAutonomous() {
               onClick={() => selectThread(thread.id)}
             >
               <div className="thread-title">{thread.title}</div>
-              <div className="thread-meta">Persona: Mother / 어머니</div>
+              <div className="thread-meta">Scenario / 시나리오</div>
             </div>
           ))}
         </div>
@@ -194,10 +202,7 @@ export default function ProxyAutonomous() {
 
       <main className="chat-main">
         <h1 className="title">Your Proxy Talks for You / 프록시가 당신을 대신해 대화</h1>
-        <p className="subtitle">
-          Scenario: talking to your mother about the family pet who has just passed away
-          <br/>시나리오: 가족 반려동물의 마지막 소식에 대해 당신과 어머니가 대화합니다.
-        </p>
+        <p className="subtitle">Scenario: {activeScenario?.summary}</p>
 
         <div className="messages">
           {activeThread?.messages.map((message, idx) => (
@@ -206,7 +211,7 @@ export default function ProxyAutonomous() {
                 {message.role === "proxy"
                   ? "Proxy / 프록시"
                   : message.role === "persona"
-                  ? "Mother / 어머니"
+                  ? activeScenario?.personaLabel || "Persona"
                   : "System"}
               </span>
               {message.content}

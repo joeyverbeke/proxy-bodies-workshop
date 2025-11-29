@@ -17,7 +17,9 @@ export default function NavBar() {
         <div className="brand">
           Proxy Bodies
           <br />
-          <span className="brand-light">[k0j0]</span>
+          <Link href="https://k0j0.com/" className="brand-light">
+            [k0j0]
+          </Link>
         </div>
         <div className="nav-links">
           {links.map((link) => {

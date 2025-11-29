@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 
 const STORAGE_KEY = "proxyPersona";
 const emptyPersona = Array.from({ length: 5 }, () => ({ question: "", answer: "" }));
-const ENABLE_SAMPLE_PERSONA = false; // set to false before deployment to disable sample autofill
+const ENABLE_SAMPLE_PERSONA = true; // set to false before deployment to disable sample autofill
 const samplePersona = [
   {
     question: "What kind of proxy are you?",
